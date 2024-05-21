@@ -13,7 +13,7 @@
   <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
-  <div id="instructions">Tap to place object4</div>
+  <div id="instructions">Tap to place object5</div>
   <script>
     let scene, camera, renderer;
     let reticle, shelfModel;
@@ -42,7 +42,7 @@
       });
 
       arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl: 'https://cdn.rawgit.com/AR-js-org/AR.js/master/three.js/data/camera_para.dat',
+        cameraParametersUrl: 'https://raw.githubusercontent.com/AR-js-org/AR.js/master/three.js/data/camera_para.dat',
         detectionMode: 'mono'
       });
 
@@ -51,7 +51,6 @@
       });
 
       window.addEventListener('resize', () => onResize());
-      window.addEventListener('arjs-video-loaded', () => onResize());
 
       function onResize() {
         arToolkitSource.onResizeElement();
@@ -61,25 +60,17 @@
         }
       }
 
-      reticle = new THREE.Mesh(
-        new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-      );
-      reticle.matrixAutoUpdate = false;
-      reticle.visible = false;
-      scene.add(reticle);
-
       const loader = new THREE.GLTFLoader();
-      loader.load('ShelfModel.glb', function(gltf) {
+      loader.load('Shelfmodel.glb', function(gltf) {
         shelfModel = gltf.scene;
         shelfModel.visible = false;
         scene.add(shelfModel);
       });
 
       document.body.addEventListener('click', () => {
-        if (reticle.visible && shelfModel) {
+        if (shelfModel) {
           const model = shelfModel.clone();
-          model.position.setFromMatrixPosition(reticle.matrix);
+          model.position.set(0, 0, -1).applyMatrix4(camera.matrixWorld);
           model.visible = true;
           scene.add(model);
         }
@@ -88,7 +79,6 @@
       renderer.setAnimationLoop(() => {
         if (arToolkitSource.ready) {
           arToolkitContext.update(arToolkitSource.domElement);
-          scene.visible = camera.visible = arToolkitContext.arController.getObject3D('marker').visible;
         }
         renderer.render(scene, camera);
       });
