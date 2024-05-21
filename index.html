@@ -1,6 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AR.js with Three.js</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Markerless AR with Three.js and AR.js</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #instructions { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 5px; }
+  </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script
+  <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
+</head>
+<body>
+  <div id="instructions">Tap to place object</div>
+  <script>
+    let scene, camera, renderer;
+    let reticle, controller;
+    let loader;
+    let shelfModel;
+
+    function init() {
+      scene = new THREE.Scene();
+
+      camera = new THREE.Camera();
+      scene.add(camera);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(window.devicePixelRatio);
+      renderer.xr.enabled = true;
+      document.body.appendChild(renderer.domElement);
+
+      const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
+      light.position.set(0.5, 1, 0.25);
+      scene.add(light);
+
+      const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
+      arToolkitSource.init(() => onResize());
+      
+      const arToolkitContext = new THREEx.ArToolkitContext({
+        cameraParametersUrl: 'https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/camera_para.dat',
+        detectionMode: 'mono'
+      });
+
+      arToolkitContext.init(() => {
+        camera.projectionMatrix.copy(arToolkitContext.getProjectionMatrix());
+      });
+
+      window.addEventListener('resize', () => onResize());
+      window.addEventListener('arjs-video-loaded', () => onResize());
+
+      function onResize() {
+        arToolkitSource.onResizeElement();
+        arToolkitSource.copyElementSizeTo(renderer.domElement);
+        if (arToolkitContext.arController) {
+          arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
+        }
+      }
+
+      reticle = new THREE.Mesh(
+        new THREE.RingGeometry(0.15, 0.2, 32).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+      );
+      reticle.matrixAutoUpdate = false;
+      reticle.visible = false;
+      scene.add(reticle);
+
+      controller = renderer.xr.getController(0);
+      controller.addEventListener('select', onSelect);
+      scene.add(controller);
+
+      loader = new THREE.GLTFLoader();
+      loader.load('ShelfModel.glb', function(gltf) {
+        shelfModel = gltf.scene;
+        shelfModel.visible = false;  // Initially hidden
+        scene.add(shelfModel);
+      });
+
+      function onSelect() {
+        if (reticle.visible && shelfModel) {
+          const clonedModel = shelfModel.clone();
+          clonedModel.position.setFromMatrixPosition(reticle.matrix);
+          clonedModel.visible = true;
+          scene.add(clonedModel);
+        }
+      }
+
+      renderer.setAnimationLoop(() => {
+        if (arToolkitSource.ready && arToolkitContext.arController) {
+          arToolkitContext.update(arToolkitSource.domElement);
+          if (arToolkitContext.arController.patternMarkers[0].visible) {
+            reticle.visible = true;
+            reticle.matrix.copy(arToolkitContext.arController.getObject3D('patternMarkers')[0].matrix);
+          } else {
+            reticle.visible = false;
+          }
+        }
+        renderer.render(scene, camera);
+      });
+    }
+
+    init();
+  </script>
+</body>
+</html>
