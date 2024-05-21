@@ -13,12 +13,11 @@
   <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
-  <div id="instructions">Tap to place object2</div>
+  <div id="instructions">Tap to place object3</div>
   <script>
     let scene, camera, renderer;
-    let reticle;
-    let loader;
-    let shelfModel;
+    let reticle, shelfModel;
+    let arToolkitSource, arToolkitContext;
 
     function init() {
       scene = new THREE.Scene();
@@ -28,17 +27,21 @@
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
-      renderer.setPixelRatio(window.devicePixelRatio);
       document.body.appendChild(renderer.domElement);
 
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
       light.position.set(0.5, 1, 0.25);
       scene.add(light);
 
-      const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
-      arToolkitSource.init(() => onResize());
+      arToolkitSource = new THREEx.ArToolkitSource({
+        sourceType: 'webcam'
+      });
 
-      const arToolkitContext = new THREEx.ArToolkitContext({
+      arToolkitSource.init(() => {
+        onResize();
+      });
+
+      arToolkitContext = new THREEx.ArToolkitContext({
         cameraParametersUrl: 'https://cdn.rawgit.com/AR-js-org/AR.js/master/three.js/data/camera_para.dat',
         detectionMode: 'mono'
       });
@@ -53,7 +56,7 @@
       function onResize() {
         arToolkitSource.onResizeElement();
         arToolkitSource.copyElementSizeTo(renderer.domElement);
-        if (arToolkitContext.arController) {
+        if (arToolkitContext.arController !== null) {
           arToolkitSource.copyElementSizeTo(arToolkitContext.arController.canvas);
         }
       }
@@ -66,26 +69,26 @@
       reticle.visible = false;
       scene.add(reticle);
 
-      loader = new THREE.GLTFLoader();
-      loader.load('Shelfmodel.glb', function(gltf) {
+      const loader = new THREE.GLTFLoader();
+      loader.load('ShelfModel.glb', function(gltf) {
         shelfModel = gltf.scene;
-        shelfModel.visible = false;  // Initially hidden
+        shelfModel.visible = false;
         scene.add(shelfModel);
       });
 
       document.body.addEventListener('click', () => {
         if (reticle.visible && shelfModel) {
-          const clonedModel = shelfModel.clone();
-          clonedModel.position.setFromMatrixPosition(reticle.matrix);
-          clonedModel.visible = true;
-          scene.add(clonedModel);
+          const model = shelfModel.clone();
+          model.position.setFromMatrixPosition(reticle.matrix);
+          model.visible = true;
+          scene.add(model);
         }
       });
 
       renderer.setAnimationLoop(() => {
         if (arToolkitSource.ready) {
           arToolkitContext.update(arToolkitSource.domElement);
-          const marker = arToolkitContext.arController.patternMarkers[0];
+          const marker = arToolkitContext.arController.getObject3D('marker');
           if (marker && marker.visible) {
             reticle.visible = true;
             reticle.matrix.copy(marker.matrix);
