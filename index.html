@@ -9,14 +9,14 @@
     #instructions { position: fixed; top: 10px; left: 50%; transform: translateX(-50%); background: white; padding: 10px; border-radius: 5px; }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://raw.githack.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
+  <script src="https://cdn.rawgit.com/AR-js-org/AR.js/master/three.js/build/ar.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/three/examples/js/loaders/GLTFLoader.js"></script>
 </head>
 <body>
   <div id="instructions">Tap to place object</div>
   <script>
     let scene, camera, renderer;
-    let reticle, controller;
+    let reticle;
     let loader;
     let shelfModel;
 
@@ -29,7 +29,6 @@
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       renderer.setSize(window.innerWidth, window.innerHeight);
       renderer.setPixelRatio(window.devicePixelRatio);
-      renderer.xr.enabled = true;
       document.body.appendChild(renderer.domElement);
 
       const light = new THREE.HemisphereLight(0xffffff, 0xbbbbff, 1);
@@ -38,9 +37,9 @@
 
       const arToolkitSource = new THREEx.ArToolkitSource({ sourceType: 'webcam' });
       arToolkitSource.init(() => onResize());
-      
+
       const arToolkitContext = new THREEx.ArToolkitContext({
-        cameraParametersUrl: 'https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/camera_para.dat',
+        cameraParametersUrl: 'https://cdn.rawgit.com/AR-js-org/AR.js/master/three.js/data/camera_para.dat',
         detectionMode: 'mono'
       });
 
@@ -67,32 +66,29 @@
       reticle.visible = false;
       scene.add(reticle);
 
-      controller = renderer.xr.getController(0);
-      controller.addEventListener('select', onSelect);
-      scene.add(controller);
-
       loader = new THREE.GLTFLoader();
-      loader.load('ShelfModel.glb', function(gltf) {
+      loader.load('Shelfmodel.glb', function(gltf) {
         shelfModel = gltf.scene;
         shelfModel.visible = false;  // Initially hidden
         scene.add(shelfModel);
       });
 
-      function onSelect() {
+      document.body.addEventListener('click', () => {
         if (reticle.visible && shelfModel) {
           const clonedModel = shelfModel.clone();
           clonedModel.position.setFromMatrixPosition(reticle.matrix);
           clonedModel.visible = true;
           scene.add(clonedModel);
         }
-      }
+      });
 
       renderer.setAnimationLoop(() => {
-        if (arToolkitSource.ready && arToolkitContext.arController) {
+        if (arToolkitSource.ready) {
           arToolkitContext.update(arToolkitSource.domElement);
-          if (arToolkitContext.arController.patternMarkers[0].visible) {
+          const marker = arToolkitContext.arController.patternMarkers[0];
+          if (marker && marker.visible) {
             reticle.visible = true;
-            reticle.matrix.copy(arToolkitContext.arController.getObject3D('patternMarkers')[0].matrix);
+            reticle.matrix.copy(marker.matrix);
           } else {
             reticle.visible = false;
           }
