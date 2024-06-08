@@ -12,17 +12,20 @@
     <button id="changeColor">Change Color</button>
 
     <!-- Model Viewer for USDZ file -->
-    <model-viewer id="arModel" src="shelf.usdz" ar ar-modes="quick-look" style="display: none;" ios-src="shelf.usdz"></model-viewer>
+    <model-viewer id="arModel" src="shelf.usdz" alt="A 3D model of a shelf" ar ar-modes="quick-look" camera-controls auto-rotate style="width: 100%; height: 400px;" ios-src="shelf.usdz"></model-viewer>
 
     <script>
         document.getElementById('viewAR').addEventListener('click', function() {
             const modelViewer = document.getElementById('arModel');
-            const arButton = modelViewer.shadowRoot.querySelector('button');
-            arButton.click();
+            const arButton = modelViewer.shadowRoot.querySelector('button[slot="ar-button"]');
+            if (arButton) {
+                arButton.click();
+            } else {
+                alert('AR Quick Look is not available');
+            }
         });
 
         document.getElementById('changeColor').addEventListener('click', function() {
-            // This demonstrates a change in the non-AR view, as Quick Look itself won't reflect this change in AR
             const modelViewer = document.getElementById('arModel');
             modelViewer.style.filter = 'hue-rotate(90deg)';
         });
